@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Use clang to build main.c, also building all other .c files in /src and
+# including /src/headers in the include path. Output the executable to chip8
+
+clang -o chip8 src/*.c -I src/headers
