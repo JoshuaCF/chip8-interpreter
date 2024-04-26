@@ -1,4 +1,5 @@
 #include "headers/file.h"
+#include "headers/interpreter.h"
 
 #include "stdlib.h"
 #include "stdio.h"
@@ -7,8 +8,8 @@
 enum argStatus { OK, TOO_FEW, TOO_MANY };
 enum argStatus verifyArgs(int argc)
 {
-	if(argc > 2) { return TOO_MANY; }
-	if(argc < 2) { return TOO_FEW; }
+	if(argc > 2) return TOO_MANY;
+	if(argc < 2) return TOO_FEW;
 	return OK;
 }
 
@@ -32,25 +33,54 @@ int main(int argc, char* argv[])
 	char* filename = argv[1];
 	printf("Running file '%s'...\n", filename);
 
-	BinRead read;
+	struct BinRead read;
 	switch(getFileContents(filename, &read))
 	{
 		case READ_ERR:
-			printf("Error when reading file.");
+			printf("Error when reading file.\n");
+			return 1;
 			break;
 		default:
 			break;
 	}
 
-	unsigned char* dataCasted = (unsigned char*)(read.memory);
-	for(int i = 0; i < MEM_SIZE; i++)
+	struct Interpreter interpreter;
+	switch(initInterpreter(&interpreter, &read))
 	{
-		printf("%hhx", dataCasted[i]);
-		if(i == 128)
+		case INIT_SIZE_ERR:
+			printf("Binary size is %lu bytes, larger than maximum allowed size %lu bytes.\n",
+				read.size, MAX_PROG_SIZE);
+			return 1;
+			break;
+		default:
+			break;
+	}
+	BinRead_free(&read);
+
+	while(true)
+	{
+		enum ExecuteResult res = execNextInstruction(&interpreter);
+		switch(res)
 		{
-			printf("\n");
+			case EXEC_INVALID_INSTRUCTION:
+				{
+					printf("Invalid instruction found at address %x: %x",
+						interpreter.pc, *(unsigned short*)(interpreter.memory + interpreter.pc));
+					return 1;
+				}
+				break;
+			case EXEC_STACK_OVERFLOW:
+				{
+					printf("Stack overflowed at address %x: %x",
+						interpreter.pc, *(unsigned short*)(interpreter.memory + interpreter.pc));
+					return 1;
+				}
+				break;
+			default:
+				break;
 		}
 	}
 
+	Interpreter_free(&interpreter);
 	return 0;
 }

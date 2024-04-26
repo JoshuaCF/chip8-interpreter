@@ -1,13 +1,13 @@
 #pragma once
 #include "sys/types.h"
 
-#define MEM_SIZE 0x1000
 
-typedef enum ReadResult { READ_OK, READ_ERR } ReadResult;
-typedef struct BinRead
+enum ReadResult { READ_OK, READ_ERR };
+struct BinRead
 {
-	unsigned short* memory;
+	unsigned short* data;
 	off_t size;
-} BinRead;
+};
+void BinRead_free(struct BinRead* toFree);
 
-ReadResult getFileContents(char* filename, BinRead* readStruct);
+enum ReadResult getFileContents(char* filename, struct BinRead* readStruct);
