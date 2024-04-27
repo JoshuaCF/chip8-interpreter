@@ -57,7 +57,8 @@ int main(int argc, char* argv[])
 	}
 	BinRead_free(&read);
 
-	while(true)
+	bool running = true;
+	while(running)
 	{
 		enum ExecuteResult res = execNextInstruction(&interpreter);
 		switch(res)
@@ -75,6 +76,9 @@ int main(int argc, char* argv[])
 						interpreter.pc, *(unsigned short*)(interpreter.memory + interpreter.pc));
 					return 1;
 				}
+				break;
+			case EXEC_RET_EMPTY_STACK:
+				running = false;
 				break;
 			default:
 				break;

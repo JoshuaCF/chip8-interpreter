@@ -11,6 +11,7 @@ enum InitializeResult { INIT_OK, INIT_SIZE_ERR };
 enum ExecuteResult
 {
 	EXEC_OK,
+	EXEC_RET_EMPTY_STACK,
 	EXEC_INVALID_INSTRUCTION,
 	EXEC_STACK_OVERFLOW
 };

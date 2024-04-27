@@ -29,7 +29,10 @@ enum InitializeResult initInterpreter(struct Interpreter* interpreter, struct Bi
 
 enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
 {
-	unsigned short curInstruction = *(unsigned short*)(interpreter->memory + interpreter->pc);
+	unsigned char* instructionPtr = interpreter->memory + interpreter->pc;
+	unsigned short curInstruction;
+	curInstruction = (*instructionPtr) << 8;
+	curInstruction |= *(instructionPtr+1);
 	interpreter->pc += 2;
 
 	unsigned char hh = (curInstruction & 0xF000) >> 12;
@@ -41,6 +44,14 @@ enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
 				case 0x00E0: // CLS
 					break;
 				case 0x00EE: // RET
+					{
+						if(interpreter->sp == STACK_START) return EXEC_RET_EMPTY_STACK;
+						unsigned short retLocation = 
+							*(interpreter->memory + interpreter->sp) << 8;
+						retLocation |= *(interpreter->memory + interpreter->sp + 1);
+						interpreter->sp -= 2;
+						interpreter->pc = retLocation;
+					}
 					break;
 				default:
 					break;
@@ -59,7 +70,10 @@ enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
 				if(interpreter->sp >= STACK_START + STACK_SIZE)
 					return EXEC_STACK_OVERFLOW;
 
-				*(unsigned short*)(interpreter->memory + interpreter->sp) = interpreter->pc;
+				unsigned char* writeLoc = interpreter->memory + interpreter->sp;
+				*writeLoc = (unsigned char)(interpreter->pc >> 8);
+				*(writeLoc+1) = (unsigned char)(interpreter->pc & 0x00FF);
+				interpreter->pc = jpLocation;
 			}
 			break;
 		case 0x03: // SE reg, imm
@@ -174,8 +188,7 @@ enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
 			{
 				unsigned char regIndex = (curInstruction & 0x0F00) >> 8;
 				unsigned char mask = curInstruction & 0x00FF;
-				// TODO Make this random
-				unsigned char randValue = 0xFF;
+				unsigned char randValue = rand();
 				interpreter->genRegs[regIndex] = randValue & mask;
 			}
 			break;
