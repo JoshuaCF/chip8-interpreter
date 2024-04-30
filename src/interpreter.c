@@ -1,4 +1,5 @@
 #include "headers/interpreter.h"
+#include "headers/input.h"
 
 #include "limits.h"
 #include "stdlib.h"
@@ -21,6 +22,7 @@ enum InitializeResult initInterpreter(struct Interpreter* interpreter, struct Bi
 	interpreter->soundTimer = 0;
 	interpreter->pc = ENTRY_POINT;
 	interpreter->sp = STACK_START;
+	resetButtonStates(&interpreter->bs);
 
 	memcpy(interpreter->memory + ENTRY_POINT, readData->data, readData->size);
 

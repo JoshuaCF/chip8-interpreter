@@ -1,5 +1,6 @@
 #pragma once
 #include "file.h"
+#include "input.h"
 
 #define MEM_SIZE 0x1000ul
 #define ENTRY_POINT 0x0200ul
@@ -24,8 +25,8 @@ struct Interpreter {
 	unsigned char soundTimer;
 	unsigned short pc;
 	unsigned char sp;
+	struct ButtonStates bs;
 };
 void Interpreter_free(struct Interpreter* toFree);
-
 enum InitializeResult initInterpreter(struct Interpreter* interpreter, struct BinRead* readData);
 enum ExecuteResult execNextInstruction(struct Interpreter* interpreter);

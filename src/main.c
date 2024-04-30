@@ -1,9 +1,19 @@
 #include "headers/file.h"
 #include "headers/interpreter.h"
+#include "headers/input.h"
 
 #include "stdlib.h"
 #include "stdio.h"
 #include "stdbool.h"
+
+#include "signal.h"
+#include "unistd.h"
+
+void sigCleanup(int sig)
+{
+	disableRawInput();
+	abort();
+}
 
 enum argStatus { OK, TOO_FEW, TOO_MANY };
 enum argStatus verifyArgs(int argc)
@@ -33,8 +43,8 @@ int main(int argc, char* argv[])
 	char* filename = argv[1];
 	printf("Running file '%s'...\n", filename);
 
-	struct BinRead read;
-	switch(getFileContents(filename, &read))
+	struct BinRead readData;
+	switch(getFileContents(filename, &readData))
 	{
 		case READ_ERR:
 			printf("Error when reading file.\n");
@@ -45,21 +55,35 @@ int main(int argc, char* argv[])
 	}
 
 	struct Interpreter interpreter;
-	switch(initInterpreter(&interpreter, &read))
+	switch(initInterpreter(&interpreter, &readData))
 	{
 		case INIT_SIZE_ERR:
 			printf("Binary size is %lu bytes, larger than maximum allowed size %lu bytes.\n",
-				read.size, MAX_PROG_SIZE);
+				readData.size, MAX_PROG_SIZE);
 			return 1;
 			break;
 		default:
 			break;
 	}
-	BinRead_free(&read);
+	BinRead_free(&readData);
+
+	// Set up terminal display and exit cleanup
+	enableRawInput();
+	signal(SIGTERM, sigCleanup);
+	signal(SIGSEGV, sigCleanup);
+	signal(SIGINT, sigCleanup);
+	signal(SIGILL, sigCleanup);
+	signal(SIGABRT, sigCleanup);
+	signal(SIGFPE, sigCleanup);
+	atexit(disableRawInput);
 
 	bool running = true;
 	while(running)
 	{
+		char inbfr[64];
+		int n = read(0, &inbfr, 64);
+		updateButtonStates(&interpreter.bs, inbfr, n);
+		printButtonStates(&interpreter.bs);
 		enum ExecuteResult res = execNextInstruction(&interpreter);
 		switch(res)
 		{
