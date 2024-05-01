@@ -7,7 +7,9 @@
 #include "stdbool.h"
 
 #include "signal.h"
+#include "time.h"
 #include "unistd.h"
+#include <bits/time.h>
 
 void sigCleanup(int sig)
 {
@@ -78,13 +80,42 @@ int main(int argc, char* argv[])
 	atexit(disableRawInput);
 
 	bool running = true;
+	bool waiting = false;
+	unsigned char* keyReg;
+	struct timespec prevTS;
+	struct timespec curTS;
+	clock_gettime(CLOCK_REALTIME, &prevTS);
+	long timeSinceDecrement = 0;
+
 	while(running)
 	{
+		clock_gettime(CLOCK_REALTIME, &curTS);
+		long oldNS = prevTS.tv_nsec;
+		long newNS = curTS.tv_nsec;
+		if(newNS < oldNS) newNS += 1e9; // Time wrapped around, so add back the lost second
+		timeSinceDecrement += newNS - oldNS;
+		if(timeSinceDecrement > 1e9/60)
+		{
+			if(interpreter.delayTimer > 0) interpreter.delayTimer -= 1;
+			if(interpreter.soundTimer > 0) interpreter.soundTimer -= 1;
+			timeSinceDecrement -= 1e9/60;
+		}
+		prevTS = curTS;
+
 		char inbfr[64];
 		int n = read(0, &inbfr, 64);
+		if(waiting)
+		{
+			if(n == 0) continue;
+			int value = translateChar(inbfr[0]); // Has an issue if multiple buttons are registered at once and
+			// the first is not a valid button. Don't care.
+			if(value == -1) continue;
+			waiting = false;
+			*keyReg = value;
+		}
+
 		updateButtonStates(&interpreter.bs, inbfr, n);
-		printButtonStates(&interpreter.bs);
-		enum ExecuteResult res = execNextInstruction(&interpreter);
+		enum ExecuteResult res = execNextInstruction(&interpreter, &keyReg);
 		switch(res)
 		{
 			case EXEC_INVALID_INSTRUCTION:
@@ -104,9 +135,13 @@ int main(int argc, char* argv[])
 			case EXEC_RET_EMPTY_STACK:
 				running = false;
 				break;
-			default:
+			case EXEC_WAIT_INPUT:
+				waiting = true;
+				break;
+			case EXEC_OK:
 				break;
 		}
+		draw(&interpreter.scr);
 	}
 
 	Interpreter_free(&interpreter);

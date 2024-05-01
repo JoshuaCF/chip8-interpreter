@@ -10,6 +10,8 @@ void enableRawInput()
 {
 	// Switch to alternate screen buffer
 	printf("\e[?1049h");
+	// Turn off cursor
+	printf("\eESC[?25l");
 
 	int fd = fileno(stdin);
 	tcgetattr(fd, &originalSettings);
@@ -27,6 +29,49 @@ void disableRawInput()
 	tcsetattr(fd, TCSANOW, &originalSettings);
 	// Switch to main buffer
 	printf("\e[?1049l");
+	// Enable cursor
+	printf("\eESC[?25h");
+}
+
+int translateChar(char c)
+{
+		switch(c)
+		{
+			case '6':
+				return 1;
+			case '7':
+				return 2;
+			case '8':
+				return 3;
+			case '9':
+				return 12;
+			case 'y':
+				return 4;
+			case 'u':
+				return 5;
+			case 'i':
+				return 6;
+			case 'o':
+				return 13;
+			case 'h':
+				return 7;
+			case 'j':
+				return 8;
+			case 'k':
+				return 9;
+			case 'l':
+				return 14;
+			case 'n':
+				return 10;
+			case 'm':
+				return 0;
+			case ',':
+				return 11;
+			case '.':
+				return 15;
+			default:
+				return -1;
+	}
 }
 
 void resetButtonStates(struct ButtonStates* bs)
@@ -48,59 +93,9 @@ void updateButtonStates(struct ButtonStates* bs, char* input, int n)
 {
 	for(int i = 0; i < n; i++)
 	{
-		switch(input[i])
-		{
-			case '6':
-				bs->state[1] ^= 0x1;
-				break;
-			case '7':
-				bs->state[2] ^= 0x1;
-				break;
-			case '8':
-				bs->state[3] ^= 0x1;
-				break;
-			case '9':
-				bs->state[12] ^= 0x1;
-				break;
-			case 'y':
-				bs->state[4] ^= 0x1;
-				break;
-			case 'u':
-				bs->state[5] ^= 0x1;
-				break;
-			case 'i':
-				bs->state[6] ^= 0x1;
-				break;
-			case 'o':
-				bs->state[13] ^= 0x1;
-				break;
-			case 'h':
-				bs->state[7] ^= 0x1;
-				break;
-			case 'j':
-				bs->state[8] ^= 0x1;
-				break;
-			case 'k':
-				bs->state[9] ^= 0x1;
-				break;
-			case 'l':
-				bs->state[14] ^= 0x1;
-				break;
-			case 'n':
-				bs->state[10] ^= 0x1;
-				break;
-			case 'm':
-				bs->state[0] ^= 0x1;
-				break;
-			case ',':
-				bs->state[11] ^= 0x1;
-				break;
-			case '.':
-				bs->state[15] ^= 0x1;
-				break;
-			default:
-				break;
-		}
+		int val = translateChar(input[i]);
+		if(val == -1) continue;
+		bs->state[val] ^= 0x1;
 	}
 }
 

@@ -1,5 +1,6 @@
 #include "headers/interpreter.h"
 #include "headers/input.h"
+#include "headers/output.h"
 
 #include "limits.h"
 #include "stdlib.h"
@@ -23,13 +24,39 @@ enum InitializeResult initInterpreter(struct Interpreter* interpreter, struct Bi
 	interpreter->pc = ENTRY_POINT;
 	interpreter->sp = STACK_START;
 	resetButtonStates(&interpreter->bs);
+	clearScreen(&interpreter->scr);
 
+	// Add number sprites
+	unsigned char sprites[80] = {
+		0xF0, 0x90, 0x90, 0x90, 0xF0,
+		0x20, 0x60, 0x20, 0x20, 0x70,
+		0xF0, 0x10, 0xF0, 0x80, 0xF0,
+		0xF0, 0x10, 0xF0, 0x10, 0xF0,
+		0x90, 0x90, 0xF0, 0x10, 0x10,
+		0xF0, 0x80, 0xF0, 0x10, 0xF0,
+		0xF0, 0x80, 0xF0, 0x90, 0xF0,
+		0xF0, 0x10, 0x20, 0x40, 0x40,
+		0xF0, 0x90, 0xF0, 0x90, 0xF0,
+		0xF0, 0x90, 0xF0, 0x10, 0xF0,
+		0xF0, 0x90, 0xF0, 0x90, 0x90,
+		0xE0, 0x90, 0xE0, 0x90, 0xE0,
+		0xF0, 0x80, 0x80, 0x80, 0xF0,
+		0xE0, 0x90, 0x90, 0x90, 0xE0,
+		0xF0, 0x80, 0xF0, 0x80, 0xF0,
+		0xF0, 0x80, 0xF0, 0x80, 0x80,
+	};
+
+	memcpy(interpreter->memory + NUM_SPRITES_START, sprites, 80);
 	memcpy(interpreter->memory + ENTRY_POINT, readData->data, readData->size);
 
 	return INIT_OK;
 }
+unsigned short getSpriteIndex(unsigned char value)
+{
+	return (value * NUM_SPRITES_SIZE) + NUM_SPRITES_START;
+}
 
-enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
+enum ExecuteResult execNextInstruction(struct Interpreter* interpreter, unsigned char** keyReg)
 {
 	unsigned char* instructionPtr = interpreter->memory + interpreter->pc;
 	unsigned short curInstruction;
@@ -44,6 +71,7 @@ enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
 			switch(curInstruction)
 			{
 				case 0x00E0: // CLS
+					clearScreen(&interpreter->scr);
 					break;
 				case 0x00EE: // RET
 					{
@@ -195,10 +223,92 @@ enum ExecuteResult execNextInstruction(struct Interpreter* interpreter)
 			}
 			break;
 		case 0x0D: // DRW reg, reg, imm(nibble)
+			{
+				unsigned char regIndex1 = (curInstruction & 0x0F00) >> 8;
+				unsigned char regIndex2 = (curInstruction & 0x00F0) >> 4;
+				unsigned char spriteBytes = curInstruction & 0x000F;
+
+				int x = interpreter->genRegs[regIndex1];
+				int y = interpreter->genRegs[regIndex2];
+				interpreter->genRegs[15] = writeSprite(&interpreter->scr, x, y,
+					interpreter->addrReg + interpreter->memory, spriteBytes);
+			}
 			break;
 		case 0x0E: // Skips on key state
+			{
+				unsigned char regIndex = (curInstruction & 0x0F00) >> 8;
+				unsigned char regValue = interpreter->genRegs[regIndex];
+				unsigned char determiner = curInstruction & 0x00FF;
+				switch(determiner)
+				{
+					case 0x9E: // SKP reg
+						if(interpreter->bs.state[regValue]) interpreter->pc += 2;
+						break;
+					case 0xA1: // SKNP reg
+						if(!interpreter->bs.state[regValue]) interpreter->pc += 2;
+						break;
+					default:
+						return EXEC_INVALID_INSTRUCTION;
+				}
+			}
 			break;
 		case 0x0F: // Misc
+			{
+				unsigned char regIndex = (curInstruction & 0x0F00) >> 8;
+				unsigned char regValue = interpreter->genRegs[regIndex];
+				unsigned char determiner = curInstruction & 0x00FF;
+				switch(determiner)
+				{
+					case 0x07: // LD reg <- delay
+						interpreter->genRegs[regIndex] = interpreter->delayTimer;
+						break;
+					case 0x0A: // LD reg <- key
+						*keyReg = &interpreter->genRegs[regIndex];
+						return EXEC_WAIT_INPUT;
+						break;
+					case 0x15: // LD reg -> delay
+						interpreter->delayTimer = regValue;
+						break;
+					case 0x18: // LD reg -> sound
+						interpreter->soundTimer = regValue;
+						break;
+					case 0x1E: // ADD reg -> addrReg
+						interpreter->addrReg += regValue;
+						break;
+					case 0x29: // LD addReg <- digitAddr of regValue
+						interpreter->addrReg = getSpriteIndex(regValue);
+						break;
+					case 0x33: // LD reg -> digits
+						{
+							unsigned char hundreds, tens, ones;
+							hundreds = regValue % 100;
+							regValue /= 100;
+							tens = regValue % 10;
+							regValue /= 10;
+							ones = regValue;
+							*(interpreter->memory + interpreter->addrReg) = hundreds;
+							*(interpreter->memory + interpreter->addrReg + 1) = tens;
+							*(interpreter->memory + interpreter->addrReg + 2) = ones;
+						}
+						break;
+					case 0x55: // LD regs -> addrReg
+						for(int i = 0; i <= regIndex; i++)
+						{
+							*(interpreter->memory + interpreter->addrReg + i) = 
+								interpreter->genRegs[i];
+						}
+						break;
+					case 0x65: // LD regs <- addrReg
+						for(int i = 0; i <= regIndex; i++)
+						{
+							 interpreter->genRegs[i] = 
+								*(interpreter->memory + interpreter->addrReg + i);
+						}
+						break;
+					default:
+						return EXEC_INVALID_INSTRUCTION;
+				}
+			}
 			break;
 	}
 	return EXEC_OK;

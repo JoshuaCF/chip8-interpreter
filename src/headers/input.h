@@ -9,6 +9,7 @@ struct ButtonStates
 
 void enableRawInput();
 void disableRawInput();
+int translateChar(char c);
 void resetButtonStates(struct ButtonStates* bs);
 void updateButtonStates(struct ButtonStates* bs, char* input, int n);
 
