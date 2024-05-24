@@ -51,8 +51,7 @@ int main(int argc, char* argv[])
 		case READ_ERR:
 			printf("Error when reading file.\n");
 			return 1;
-			break;
-		default:
+		case READ_OK:
 			break;
 	}
 
