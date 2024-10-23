@@ -47,4 +47,4 @@ const char* ExecStatus_asStr(enum ExecStatus status);
 
 enum InitStatus C8Interpreter_init(struct C8Interpreter* restrict interpreter, const uint8_t* restrict program_data, size_t program_size);
 enum ExecStatus C8Interpreter_step(struct C8Interpreter* interpreter);
-void C8Interpreter_drawToImage(struct Image* image);
+void C8Interpreter_drawToImage(struct C8Interpreter* restrict interpreter, struct Image* restrict image);

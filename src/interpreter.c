@@ -77,6 +77,24 @@ enum InitStatus C8Interpreter_init(struct C8Interpreter* restrict interpreter, c
 enum ExecStatus C8Interpreter_step(struct C8Interpreter* interpreter) {
 
 }
-void C8Interpreter_drawToImage(struct Image* image) {
-
+void C8Interpreter_drawToImage(struct C8Interpreter* restrict interpreter, struct Image* restrict image) {
+	for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
+		for (size_t x = 0; x < SCREEN_WIDTH; x++) {
+			size_t cur_byte = y * (SCREEN_WIDTH / 8) + x / 8;
+			size_t cur_bit = x % 8;
+			uint8_t mask = 0b1 << (7 - cur_bit);
+			
+			struct Pixel* cur_pixel = Image_getPixel(image, x, y);
+			
+			if (interpreter->screen[cur_byte] & mask) {
+				cur_pixel->col.r = PIXEL_ON_R;
+				cur_pixel->col.g = PIXEL_ON_G;
+				cur_pixel->col.b = PIXEL_ON_B;
+			} else {
+				cur_pixel->col.r = PIXEL_OFF_R;
+				cur_pixel->col.g = PIXEL_OFF_G;
+				cur_pixel->col.b = PIXEL_OFF_B;
+			}
+		}
+	}
 }
