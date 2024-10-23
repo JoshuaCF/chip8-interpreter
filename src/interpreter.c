@@ -77,6 +77,9 @@ enum InitStatus C8Interpreter_init(struct C8Interpreter* restrict interpreter, c
 enum ExecStatus C8Interpreter_step(struct C8Interpreter* interpreter) {
 
 }
+void C8Interpreter_toggleKeyPressed(struct C8Interpreter* interpreter, size_t key_index) {
+	interpreter->keys.keys_changed[key_index] ^= 0b1;
+}
 void C8Interpreter_drawToImage(struct C8Interpreter* restrict interpreter, struct Image* restrict image) {
 	for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
 		for (size_t x = 0; x < SCREEN_WIDTH; x++) {
