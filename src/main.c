@@ -1,7 +1,10 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "img.h"
+#include "input.h"
 #include "term_ctrl.h"
 
 #include "interpreter.h"
@@ -39,8 +42,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Read file contents
-	uint8_t* read_buf = malloc(file_len + 1);
-	read_buf[file_len] = '\x00';
+	uint8_t* read_buf = malloc(file_len);
 
 	if (fread(read_buf, 1, file_len, file) < file_len) {
 		fprintf(stderr, "Error reading file contents\n");
@@ -51,7 +53,7 @@ int main(int argc, char* argv[]) {
 	struct C8Interpreter interpreter;
 	enum InitStatus init_status = C8Interpreter_init(&interpreter, read_buf, file_len);
 	if (init_status != INIT_OK) {
-		fprintf(stderr, "Error initializing interpreter: %s", InitStatus_asStr(init_status));
+		fprintf(stderr, "Error initializing interpreter: %s\n", InitStatus_asStr(init_status));
 		return 1;
 	}
 
@@ -59,14 +61,75 @@ int main(int argc, char* argv[]) {
 	fclose(file);
 	free(read_buf);
 
-	// Setup display
+	// Prepare image buffer
+	struct Image image = Image_new(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	// Set up input
+	configureInput();
+
+	// Configure terminal
 	struct TermCtrlQueue ctrl_queue = TermCtrlQueue_new(stdout);
 
 	queueTermCtrlDisplayEnterAltBuffer(&ctrl_queue);
 	queueTermCtrlCursorMoveToOrigin(&ctrl_queue);
 	queueTermCtrlDisplayEraseAll(&ctrl_queue);
+	queueTermCtrlCursorSetInvisible(&ctrl_queue);
+	TermCtrlQueue_exec(&ctrl_queue);
+	fflush(stdout);
+
+	// Set up time tracking
+	// POSIX only atm
+	struct timespec prev_time, cur_time;
+
+	clock_gettime(CLOCK_REALTIME, &prev_time);
+
+	// Temporary control loop
+	bool running = true;
+	enum ExecStatus status = EXEC_OK;
+	while (running && status == EXEC_OK) {
+		// Compute time elapsed
+		clock_gettime(CLOCK_REALTIME, &cur_time);
+
+		long old_ns = prev_time.tv_nsec;
+		long cur_ns = cur_time.tv_nsec;
+		if (old_ns > cur_ns) old_ns -= 1e9;
+		long delta_ns = cur_ns - old_ns;
+
+		prev_time = cur_time;
+
+		// Update input
+		switch (updateInterpreterKeys(&interpreter)) {
+			case CMD_QUIT:
+				running = false;
+				break;
+			case CMD_OK:
+				break;
+		}
+
+		// Prepare screen
+		queueTermCtrlDisplayEraseFromCursor(&ctrl_queue);
+		queueTermCtrlCursorMoveToOrigin(&ctrl_queue);
+		TermCtrlQueue_exec(&ctrl_queue);
+		fflush(stdout);
+
+		// Tick
+		status = C8Interpreter_step(&interpreter, delta_ns);
+		C8Interpreter_drawToImage(&interpreter, &image);
+		Image_draw(&image, stdout);
+	}
+
+	// Fix terminal
+	queueTermCtrlDisplayLeaveAltBuffer(&ctrl_queue);
+	queueTermCtrlCursorSetVisible(&ctrl_queue);
+	TermCtrlQueue_exec(&ctrl_queue);
+
+	// Fix input
+	resetInput();
+
+	printf("%s\n", ExecStatus_asStr(status));
 
 	TermCtrlQueue_free(&ctrl_queue);
+	Image_free(&image);
 
 	return 0;
 }
