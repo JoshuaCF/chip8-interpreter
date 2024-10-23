@@ -16,5 +16,5 @@ fi
 
 BINARY_NAME="chip8"
 
-$COMPILER -xc -std=gnu17 -I "src/headers" -I "lib/headers" -O3 $LIB_FILES $FILES -o "bin/release/$BINARY_NAME"
-$COMPILER -xc -std=gnu17 -I "src/headers" -I "lib/headers" -O0 -g $LIB_FILES $FILES -o "bin/debug/$BINARY_NAME"
+$COMPILER -std=gnu17 -I "src/headers" -I "lib/headers" -O3 $LIB_FILES $FILES -o "bin/release/$BINARY_NAME"
+$COMPILER -std=gnu17 -I "src/headers" -I "lib/headers" -O0 -g $LIB_FILES $FILES -o "bin/debug/$BINARY_NAME"
