@@ -67,7 +67,10 @@ enum InitStatus C8Interpreter_init(struct C8Interpreter* restrict interpreter, c
 	interpreter->sp = 0;
 	memset(&interpreter->stack, 0x0, 16 * sizeof(uint16_t));
 
-	memcpy(&interpreter->memory + interpreter->pc, program_data, program_size);
+	memset(&interpreter->keys.keys_held, 0x0, 16 * sizeof(bool));
+	memset(&interpreter->keys.keys_changed, 0x0, 16 * sizeof(bool));
+
+	memcpy(&interpreter->memory[0] + interpreter->pc, program_data, program_size);
 
 	return INIT_OK;
 }
