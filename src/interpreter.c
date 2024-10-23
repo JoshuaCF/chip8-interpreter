@@ -24,8 +24,13 @@ const char* ExecStatus_asStr(enum ExecStatus status) {
 			return "EXEC_INVALID_ADDRESS - Instruction used an invalid address";
 		case EXEC_INVALID_INSTRUCTION:
 			return "EXEC_INVALID_INSTRUCTION - Instruction not recognized";
+		case EXEC_RET_STACK_EMPTY:
+			return "EXEC_RET_STACK_EMPTY - RET executed when no addresses are on the stack";
 		case EXEC_STACK_OVERFLOW:
 			return "EXEC_STACK_OVERFLOW - Stack ran out of space";
+
+		case EXEC_TERMINATE:
+			return "EXEC_TERMINATE - Execution ended normally";
 	}
 }
 
@@ -70,12 +75,14 @@ enum InitStatus C8Interpreter_init(struct C8Interpreter* restrict interpreter, c
 	memset(&interpreter->keys.keys_held, 0x0, 16 * sizeof(bool));
 	memset(&interpreter->keys.keys_changed, 0x0, 16 * sizeof(bool));
 
+	interpreter->clock_tick_progress = 0;
+
 	memcpy(&interpreter->memory[0] + interpreter->pc, program_data, program_size);
 
 	return INIT_OK;
 }
-enum ExecStatus C8Interpreter_step(struct C8Interpreter* interpreter) {
-
+enum ExecStatus C8Interpreter_step(struct C8Interpreter* interpreter, long time_elapsed_ns) {
+	return EXEC_TERMINATE;
 }
 void C8Interpreter_toggleKeyPressed(struct C8Interpreter* interpreter, size_t key_index) {
 	interpreter->keys.keys_changed[key_index] ^= 0b1;
