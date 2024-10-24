@@ -37,9 +37,56 @@ enum ProgramControls updateInterpreterKeys(struct C8Interpreter* interpreter) {
 		char cur_char = buf[i];
 		if (cur_char == 'q') {
 			return_val = CMD_QUIT;
-		} else if (cur_char >= 'a' && cur_char <= 'p') {
-			uint8_t button = cur_char - 'a';
-			interpreter->keys.keys_changed[button] ^= 0b1;
+		}
+		switch (cur_char) {
+			case 'm':
+				interpreter->keys.keys_changed[0] ^= 0b1;
+				break;
+			case '6':
+				interpreter->keys.keys_changed[1] ^= 0b1;
+				break;
+			case '7':
+				interpreter->keys.keys_changed[2] ^= 0b1;
+				break;
+			case '8':
+				interpreter->keys.keys_changed[3] ^= 0b1;
+				break;
+			case 'y':
+				interpreter->keys.keys_changed[4] ^= 0b1;
+				break;
+			case 'u':
+				interpreter->keys.keys_changed[5] ^= 0b1;
+				break;
+			case 'i':
+				interpreter->keys.keys_changed[6] ^= 0b1;
+				break;
+			case 'h':
+				interpreter->keys.keys_changed[7] ^= 0b1;
+				break;
+			case 'j':
+				interpreter->keys.keys_changed[8] ^= 0b1;
+				break;
+			case 'k':
+				interpreter->keys.keys_changed[9] ^= 0b1;
+				break;
+			case 'n':
+				interpreter->keys.keys_changed[10] ^= 0b1;
+				break;
+			case ',':
+				interpreter->keys.keys_changed[11] ^= 0b1;
+				break;
+			case '9':
+				interpreter->keys.keys_changed[12] ^= 0b1;
+				break;
+			case 'o':
+				interpreter->keys.keys_changed[13] ^= 0b1;
+				break;
+			case 'l':
+				interpreter->keys.keys_changed[14] ^= 0b1;
+				break;
+			case '.':
+				interpreter->keys.keys_changed[15] ^= 0b1;
+				break;
 		}
 	}
 
