@@ -24,7 +24,7 @@
 #define PIXEL_OFF_B 30
 
 #define CLOCK_RATE_HZ 60
-#define CLOCK_RATE_NS (1e9 / CLOCK_RATE_HZ)
+#define CLOCK_NS_PER_STEP (1000000000 / CLOCK_RATE_HZ)
 
 struct KeyState {
 	bool keys_held[16];
@@ -46,7 +46,7 @@ struct C8Interpreter {
 
 	struct KeyState keys;
 
-	uint64_t clock_tick_progress;
+	uint64_t clock_tick_progress_ns;
 };
 
 enum InitStatus {
@@ -64,6 +64,8 @@ enum ExecStatus {
 	EXEC_INVALID_INSTRUCTION,
 	EXEC_RET_STACK_EMPTY,
 	EXEC_STACK_OVERFLOW,
+	EXEC_INVALID_KEY,
+	EXEC_INVALID_SPRITE,
 
 	EXEC_TERMINATE,
 };

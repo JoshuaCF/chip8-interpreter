@@ -7,9 +7,12 @@
 #include "input.h"
 #include "term_ctrl.h"
 
+#include "debug_logger.h"
 #include "interpreter.h"
 
 int main(int argc, char* argv[]) {
+	enable_logging();
+
 	// Check arguments
 	if (argc != 2) {
 		fprintf(stderr, "Invalid arguments. Valid usage is as follows:\n");
@@ -83,7 +86,10 @@ int main(int argc, char* argv[]) {
 
 	clock_gettime(CLOCK_REALTIME, &prev_time);
 
-	// Temporary control loop
+	// Seed RNG
+	srand(time(NULL));
+
+	// Control loop
 	bool running = true;
 	enum ExecStatus status = EXEC_OK;
 	while (running && status == EXEC_OK) {
@@ -131,5 +137,6 @@ int main(int argc, char* argv[]) {
 	TermCtrlQueue_free(&ctrl_queue);
 	Image_free(&image);
 
+	disable_logging();
 	return 0;
 }
